@@ -54,16 +54,40 @@ library(leaflet)
 library(leaflet.extras)
 
 
-leaflet() |> 
+mapa = leaflet() |> 
   addTiles() |>  
-  addMarkers(data = datos_sf, label = datos$`NOMBRE DEL SITIO`) #|> 
-  # addHeatmap(data = datos_sf,
-  #            intensity = 100,
-  #            blur = 20,
-  #            radius = 15)
+  addMarkers(
+    data = datos_sf, 
+    label = datos$`NOMBRE DEL SITIO`, 
+    popup = vapply(seq_len(nrow(datos_sf)), function(i) {
+      fila = sf::st_drop_geometry(datos_sf[i, , drop = FALSE])
+      valores = vapply(fila, function(columna) {
+        valor = columna[[1]]
+        if (is.na(valor)) "NA" else as.character(valor)
+      }, character(1))
+      paste0(
+        "<strong>", htmltools::htmlEscape(names(valores)), "</strong>: ",
+        htmltools::htmlEscape(unname(valores)),
+        collapse = "<br>"
+      )
+    }, character(1), USE.NAMES = FALSE),
+    group = "Marcadores"
+  ) |> 
+  addHeatmap(
+    data = datos_sf,
+    intensity = datos$`DBO_mg/L` |>  as.numeric(),
+    group = "Mapa de calor"
+  ) |> 
+  addLayersControl(
+    overlayGroups = c("Marcadores", "Mapa de calor"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
 
 
 
+
+
+htmlwidgets::saveWidget(widget = mapa, file = "Outputs/Mapa/Presa_ENDHO.html", selfcontained = F, title = "Presa ENDHO")
 
 
 
